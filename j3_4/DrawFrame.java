@@ -2,329 +2,541 @@ import java.awt.*;
 import java.util.*;
 import javax.swing.*;
 import java.awt.event.*;
+import java.io.File;
+import javax.swing.*;
+import java.awt.*;
+import java.util.*;
+import java.util.List;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 
+class OperationPanel extends JPanel {
+    public OperationPanel(DrawModel model, ComboBoxController cb) {
+        this.setLayout(new BorderLayout());
 
-class ComboBoxController implements ActionListener{
-   private DrawModel model;
-   public ComboBoxController(DrawModel a) {
-       model = a;
-   }
-   @Override
-   public void actionPerformed(ActionEvent e) {
-       JComboBox cb = (JComboBox) e.getSource();
-       String selected = (String) cb.getSelectedItem();
-       Color color = Color.RED;
-       String mode = "draw";
-       switch (selected) {
-           case "draw":
-               mode = "draw";
-               break;
-           case "choose":
-               mode = "choose";
-               break;
-           case "red":
-               color = Color.RED;
-               break;
-           case "green":
-               color = Color.GREEN;
-               break;
-           case "blue":
-               color = Color.BLUE;
-               break;
-       }
-       model.setColor(color);
-       model.setMode(mode);
-   }
+        // コンボボックスパネル（上部）
+        JPanel controlPanel = new JPanel();
+        JComboBox<String> comboBox_shape = new JComboBox<>(
+                new String[] { "rectangle", "filled_rectangle", "circle", "filled_circle" });
+        JComboBox<String> comboBox_col = new JComboBox<>(new String[] { "red", "green", "blue" });
+        JComboBox<String> comboBox_mode = new JComboBox<>(new String[] { "draw", "choose" });
+        comboBox_col.addActionListener(cb);
+        comboBox_mode.addActionListener(cb);
+        comboBox_shape.addActionListener(cb);
+        controlPanel.add(comboBox_shape);
+        controlPanel.add(comboBox_col);
+        controlPanel.add(comboBox_mode);
+
+        // 移動ボタンパネル（中央）
+        JPanel movePanel = new JPanel(new GridLayout(2, 3));
+        JButton upBtn = new JButton("↑");
+        JButton downBtn = new JButton("↓");
+        JButton leftBtn = new JButton("←");
+        JButton rightBtn = new JButton("→");
+        movePanel.add(new JLabel(""));
+        movePanel.add(upBtn);
+        movePanel.add(new JLabel(""));
+        movePanel.add(leftBtn);
+        movePanel.add(downBtn);
+        movePanel.add(rightBtn);
+
+        upBtn.addActionListener(new ButtonController(model, 0, -10, "move"));
+        downBtn.addActionListener(new ButtonController(model, 0, 10, "move"));
+        leftBtn.addActionListener(new ButtonController(model, -10, 0, "move"));
+        rightBtn.addActionListener(new ButtonController(model, 10, 0, "move"));
+
+        // サイズ変更パネル（下部）
+        JPanel resizePanel = new JPanel();
+        JButton zoomInBtn = new JButton("+");
+        JButton zoomOutBtn = new JButton("-");
+        zoomInBtn.addActionListener(new ButtonController(model, 10, 10, "resize"));
+        zoomOutBtn.addActionListener(new ButtonController(model, -10, -10, "resize"));
+        resizePanel.add(zoomInBtn);
+        resizePanel.add(zoomOutBtn);
+
+        // パネルをまとめて配置
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.add(movePanel, BorderLayout.CENTER);
+        southPanel.add(resizePanel, BorderLayout.SOUTH);
+
+        this.add(controlPanel, BorderLayout.NORTH);
+        this.add(southPanel, BorderLayout.SOUTH);
+    }
 }
 
+class DrawPanel extends JPanel implements Observer {
+    protected DrawModel model;
+    protected DrawController controller;
+    private BufferedImage backgroundImage = null;
+
+    public DrawPanel(DrawModel m, DrawController c) {
+        this.model = m;
+        this.controller = c;
+        this.setBackground(Color.white);
+        this.addMouseListener(c);
+        this.addMouseMotionListener(c);
+        model.addObserver(this);
+    }
+
+    public void setBackgroundImage(BufferedImage img) {
+        this.backgroundImage = img;
+        repaint();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (backgroundImage != null) {
+            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null);
+        }
+        List<Figure> fig = model.getFigures();
+        for (Figure f : fig) {
+            f.draw(g);
+        }
+    }
+
+    public BufferedImage exportImage() {
+        BufferedImage image = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+        this.paint(g2d); // 描画内容を BufferedImage に描く
+        g2d.dispose();
+        return image;
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        repaint();
+    }
+}
+
+class ComboBoxController implements ActionListener {
+    private DrawModel model;
+
+    public ComboBoxController(DrawModel a) {
+        model = a;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        JComboBox cb = (JComboBox) e.getSource();
+        String selected = (String) cb.getSelectedItem();
+        switch (selected) {
+            case "draw":
+            case "choose":
+                model.setMode(selected);
+                break;
+            case "red":
+                model.setColor(Color.RED);
+                break;
+            case "green":
+                model.setColor(Color.GREEN);
+                break;
+            case "blue":
+                model.setColor(Color.BLUE);
+                break;
+            case "filled_rectangle":
+            case "filled_circle":
+            case "rectangle":
+            case "circle":
+                model.setShapeType(selected);
+                break;
+        }
+    }
+}
 
 class DrawController implements MouseListener, MouseMotionListener {
-   protected DrawModel model;
-   protected int dragStartX,dragStartY;
-   public DrawController(DrawModel a) {
-     model = a;
-   }
-   public void mouseClicked(MouseEvent e) {}
-   public void mousePressed(MouseEvent e) {
-       int x = e.getX();
-       int y = e.getY();
-       if (model.getMode().equals("draw")) {
-           dragStartX = x;
-           dragStartY = y;
-           model.createFigure(x, y);
-       } else if (model.getMode().equals("choose")) {
-           model.chooseFigure(x, y);
-       }
-   }
-   public void mouseDragged(MouseEvent e) {
-    if (model.getMode().equals("draw")) {
-        model.reshapeFigure(dragStartX, dragStartY, e.getX(), e.getY());
-    } else if (model.getMode().equals("choose")) {
-        int dx = e.getX() - dragStartX;
-        int dy = e.getY() - dragStartY;
-        model.moveSelectedFigures(dx, dy);
-        // dragStartX/Y を更新
-        dragStartX = e.getX();
-        dragStartY = e.getY();
-    }
-  }
+    protected DrawModel model;
+    protected int dragStartX, dragStartY;
 
-   public void mouseReleased(MouseEvent e) {}
-   public void mouseEntered(MouseEvent e) {}
-   public void mouseExited(MouseEvent e) {}
-   public void mouseMoved(MouseEvent e) {}
+    public DrawController(DrawModel a) {
+        model = a;
+    }
+
+    public void mouseClicked(MouseEvent e) {
+    }
+
+    public void mousePressed(MouseEvent e) {
+        int x = e.getX();
+        int y = e.getY();
+        if (model.getMode().equals("draw")) {
+            dragStartX = x;
+            dragStartY = y;
+            model.createFigure(x, y);
+        } else if (model.getMode().equals("choose")) {
+            model.chooseFigure(x, y);
+            dragStartX = x;
+            dragStartY = y; // ★追加することで、意図しない移動を防止
+        }
+    }
+
+    public void mouseDragged(MouseEvent e) {
+        if (model.getMode().equals("draw")) {
+            model.reshapeFigure(dragStartX, dragStartY, e.getX(), e.getY());
+        } else if (model.getMode().equals("choose")) {
+            int dx = e.getX() - dragStartX;
+            int dy = e.getY() - dragStartY;
+            model.moveSelectedFigures(dx, dy);
+            // dragStartX/Y を更新
+            dragStartX = e.getX();
+            dragStartY = e.getY();
+        }
+    }
+
+    public void mouseReleased(MouseEvent e) {
+    }
+
+    public void mouseEntered(MouseEvent e) {
+    }
+
+    public void mouseExited(MouseEvent e) {
+    }
+
+    public void mouseMoved(MouseEvent e) {
+    }
 }
 
 class ButtonController implements ActionListener {
-  private DrawModel model;
-  private int dx, dy;
-  private String type; // "move" or "resize"
+    private DrawModel model;
+    private int dx, dy;
+    private String type; // "move" or "resize"
 
-  public ButtonController(DrawModel model, int dx, int dy, String type) {
-      this.model = model;
-      this.dx = dx;
-      this.dy = dy;
-      this.type = type;
-  }
+    public ButtonController(DrawModel model, int dx, int dy, String type) {
+        this.model = model;
+        this.dx = dx;
+        this.dy = dy;
+        this.type = type;
+    }
 
-  @Override
-  public void actionPerformed(ActionEvent e) {
-      if (type.equals("move")) {
-          model.moveSelectedFigures(dx, dy);
-      } else if (type.equals("resize")) {
-          model.resizeSelectedFigures(dx, dy);
-      }
-  }
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (type.equals("move")) {
+            model.moveSelectedFigures(dx, dy);
+        } else if (type.equals("resize")) {
+            model.resizeSelectedFigures(dx, dy);
+        }
+    }
 }
-
-
 
 class DrawModel extends Observable {
-   protected ArrayList<Figure> fig;
-   protected Figure drawingFigure;
-   protected Color currentColor;
-   protected String mode;
- 
-   public DrawModel() {
-     fig = new ArrayList<Figure>();
-     drawingFigure = null;
-     mode = "draw";
-     currentColor = Color.red;  // 色はとりあえず赤で固定
-   }
+    protected ArrayList<Figure> fig;
+    protected Figure drawingFigure;
+    protected Color currentColor;
+    protected String mode;
+    private String shapeType = "rectangle";
 
-   public void resizeSelectedFigures(int dw, int dh) {
-    for (Figure f : fig) {
-        if (f.isSelected()) {
-            f.resize(dw, dh);
-        }
+    public DrawModel() {
+        fig = new ArrayList<Figure>();
+        drawingFigure = null;
+        mode = "draw";
+        currentColor = Color.red; // 色はとりあえず赤で固定
     }
-    setChanged();
-    notifyObservers();
-  }
+
+    public void setShapeType(String type) {
+        this.shapeType = type;
+    }
+
+    public String getShapeType() {
+        return this.shapeType;
+    }
+
+    public void createFigure(int x, int y) {
+        Figure f;
+        switch (shapeType) {
+            case "circle":
+                f = new CircleFigure(x, y, 0, 0, currentColor, false);
+                break;
+            case "filled_circle":
+                f = new CircleFigure(x, y, 0, 0, currentColor, true);
+                break;
+            case "filled_rectangle":
+                f = new RectangleFigure(x, y, 0, 0, currentColor, true);
+                break;
+            default:
+                f = new RectangleFigure(x, y, 0, 0, currentColor, false);
+        }
+        fig.add(f);
+        drawingFigure = f;
+        setChanged();
+        notifyObservers();
+    }
+
+    public void resizeSelectedFigures(int dw, int dh) {
+        for (Figure f : fig) {
+            if (f.isSelected()) {
+                f.resize(dw, dh);
+            }
+        }
+        setChanged();
+        notifyObservers();
+    }
 
     public void moveSelectedFigures(int dx, int dy) {
-    for (Figure f : fig) {
-        if (f.isSelected()) {
-            f.translate(dx, dy);
+        for (Figure f : fig) {
+            if (f.isSelected()) {
+                f.translate(dx, dy);
+            }
+        }
+        setChanged();
+        notifyObservers();
+    }
+
+    public void setMode(String m) {
+        mode = m;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setColor(Color color) {
+        currentColor = color;
+    }
+
+    public ArrayList<Figure> getFigures() {
+        return fig;
+    }
+
+    public Figure getFigure(int idx) {
+        setChanged();
+        notifyObservers();
+        return fig.get(idx);
+    }
+
+    public void chooseFigure(int x, int y) {
+        for (Figure f : fig) {
+            boolean selected = f.contains(x, y);
+            f.setSelected(selected);
+        }
+        setChanged();
+        notifyObservers();
+    }
+
+    public void reshapeFigure(int x1, int y1, int x2, int y2) {
+        if (drawingFigure != null) {
+            drawingFigure.reshape(x1, y1, x2, y2);
+            setChanged();
+            notifyObservers();
         }
     }
-    setChanged();
-    notifyObservers();
-  }
-
-   public void setMode(String m){
-       mode = m;
-   }
-   public String getMode() {
-       return mode;
-   }
-   public void setColor(Color color){
-       currentColor = color;
-   }
-   public ArrayList<Figure> getFigures() {
-       return fig;
-     }
-   public Figure getFigure(int idx) {
-       setChanged();
-       notifyObservers();
-       return fig.get(idx);
-   }
-   public void chooseFigure(int x, int y) {
-       for (Figure f : fig) {
-           boolean selected = f.contains(x, y);
-           f.setSelected(selected);
-       }
-       setChanged();
-       notifyObservers();
-   }
-   public void createFigure(int x,int y) {
-       Figure f = new RectangleFigure(x, y, 0, 0, currentColor);
-       fig.add(f);
-       drawingFigure = f;
-       setChanged();
-       notifyObservers();
-     }
-     
-     public void reshapeFigure(int x1, int y1, int x2, int y2) {
-       if (drawingFigure != null) {
-         drawingFigure.reshape(x1, y1, x2, y2);
-         setChanged();
-         notifyObservers();
-       }
-     }
 }
-
 
 class Figure {
-   public int x, y, width, height;
-   protected Color color;
-   protected boolean selected = false;
-   public Figure(int x, int y, int w, int h, Color c) {
-       this.x = x; this.y = y;
-       width = w; height = h;
-       color = c;
-   }
-   public void translate(int dx, int dy) {
-    this.x += dx;
-    this.y += dy;
-  }
+    protected boolean filled;
+    public int x, y, width, height;
+    protected Color color;
+    protected boolean selected = false;
 
-   public void setSelected(boolean sel) {
-       selected = sel;
-   }
-   public boolean isSelected() {
-       return selected;
-   }
-   public boolean contains(int px, int py) {
-       return (px >= x && px <= x + width &&
-               py >= y && py <= y + height);
-   }
-   public void setColor(Color color){
-       this.color = color;
-   }
-   public void setSize(int w, int h) {
-       width = w; height = h;
-   }
-   public void resize(int dw, int dh) {
-    width = Math.max(1, width + dw);
-    height = Math.max(1, height + dh);
+    public Figure(int x, int y, int w, int h, Color c, boolean filled) {
+        this.x = x;
+        this.y = y;
+        this.width = w;
+        this.height = h;
+        this.color = c;
+        this.filled = filled;
+    }
+
+    public void translate(int dx, int dy) {
+        this.x += dx;
+        this.y += dy;
+    }
+
+    public void setSelected(boolean sel) {
+        selected = sel;
+    }
+
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public boolean contains(int px, int py) {
+        return (px >= x && px <= x + width &&
+                py >= y && py <= y + height);
+    }
+
+    public void setColor(Color color) {
+        this.color = color;
+    }
+
+    public void setSize(int w, int h) {
+        width = w;
+        height = h;
+    }
+
+    public void resize(int dw, int dh) {
+        width = Math.max(1, width + dw);
+        height = Math.max(1, height + dh);
+    }
+
+    public void setLocation(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public void reshape(int x1, int y1, int x2, int y2) {
+        int newx = Math.min(x1, x2);
+        int newy = Math.min(y1, y2);
+        int neww = Math.abs(x1 - x2);
+        int newh = Math.abs(y1 - y2);
+        setLocation(newx, newy);
+        setSize(neww, newh);
+    }
+
+    public void draw(Graphics g) {
+    } // 実装はサブクラスに任せる
 }
 
-   public void setLocation(int x, int y) {
-       this.x = x; this.y = y;
-   }
-   public void reshape(int x1, int y1, int x2, int y2) {
-       int newx = Math.min(x1, x2);
-       int newy = Math.min(y1, y2);
-       int neww = Math.abs(x1 - x2);
-       int newh = Math.abs(y1 - y2);
-       setLocation(newx, newy);
-       setSize(neww, newh);
-   }
-   public void draw(Graphics g) {}  // 実装はサブクラスに任せる
+class CircleFigure extends Figure {
+    public CircleFigure(int x, int y, int w, int h, Color c, boolean filled) {
+        super(x, y, w, h, c, filled);
+    }
+
+    @Override
+    public void draw(Graphics g) {
+        g.setColor(color);
+        if (filled) {
+            g.fillOval(x, y, width, height);
+        } else {
+            g.drawOval(x, y, width, height);
+        }
+        if (selected) {
+            Graphics2D g2 = (Graphics2D) g;
+            Stroke oldStroke = g2.getStroke();
+            g2.setColor(Color.YELLOW);
+            g2.setStroke(new BasicStroke(4));
+            g2.drawOval(x - 4, y - 4, width + 8, height + 8);
+            g2.setStroke(oldStroke);
+        }
+    }
+
+    @Override
+    public boolean contains(int px, int py) {
+        double cx = x + width / 2.0;
+        double cy = y + height / 2.0;
+        double rx = width / 2.0;
+        double ry = height / 2.0;
+        if (rx <= 0 || ry <= 0)
+            return false;
+        double dx = px - cx;
+        double dy = py - cy;
+        return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1.0;
+    }
 }
+
 class RectangleFigure extends Figure {
-   public RectangleFigure(int x, int y, int w, int h, Color c) {
-       super(x, y, w, h, c);
-   }
-   public void draw(Graphics g) {
-       g.setColor(color);
-       g.drawRect(x, y, width, height);
-       if (selected) {
-           Graphics2D g2 = (Graphics2D) g;
-           Stroke oldStroke = g2.getStroke();
-           g2.setColor(Color.YELLOW);
-           g2.setStroke(new BasicStroke(4));
-           g2.drawRect(x - 4, y - 4, width + 8, height + 8);
-           g2.setStroke(oldStroke);
-       }
-   }
+    public RectangleFigure(int x, int y, int w, int h, Color c, boolean filled) {
+        super(x, y, w, h, c, filled);
+    }
+
+    public void draw(Graphics g) {
+        g.setColor(color);
+        if (filled) {
+            g.fillRect(x, y, width, height);
+        } else {
+            g.drawRect(x, y, width, height);
+        }
+        if (selected) {
+            Graphics2D g2 = (Graphics2D) g;
+            Stroke oldStroke = g2.getStroke();
+            g2.setColor(Color.YELLOW);
+            g2.setStroke(new BasicStroke(4));
+            g2.drawRect(x - 4, y - 4, width + 8, height + 8);
+            g2.setStroke(oldStroke);
+        }
+    }
+
 }
 
+public class DrawFrame extends JFrame {
+    DrawPanel draw_panel;
+    OperationPanel operation_panel;
+    DrawModel model;
+    DrawController cont;
+    ComboBoxController cb;
+    JFileChooser chooser = new JFileChooser();
+    JMenuBar mb = new JMenuBar();
+    JMenu fileMenu = new JMenu("File");
+    JMenuItem openItem = new JMenuItem("Open");
+    JMenuItem saveItem = new JMenuItem("Save");
+    JMenuItem exitItem = new JMenuItem("Exit");
 
+    public DrawFrame() {
+        super("Simple File Chooser Application");
+        model = new DrawModel();
+        cb = new ComboBoxController(model);
+        cont = new DrawController(model);
+        operation_panel = new OperationPanel(model, cb);
+        draw_panel = new DrawPanel(model, cont);
+        this.setLayout(new BorderLayout()); // ★レイアウトを設定（必須）
+        this.add(draw_panel, BorderLayout.CENTER);
+        this.add(operation_panel, BorderLayout.EAST);
+        this.setBackground(Color.black);
+        this.setTitle("Draw Editor");
+        this.setSize(500, 500);
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setVisible(true);
+        fileMenu.add(openItem);
+        fileMenu.add(saveItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitItem);
+        mb.add(fileMenu);
+        setJMenuBar(mb);
+        setSize(300, 300);
+        openItem.addActionListener(e -> {
+            int state = chooser.showOpenDialog(null);
+            if (state == JFileChooser.APPROVE_OPTION) {
+                File file = chooser.getSelectedFile();
+                try {
+                    BufferedImage img = ImageIO.read(file);
+                    if (img != null) {
+                        draw_panel.setBackgroundImage(img);
+                        System.out.println("Loaded image: " + file.getPath());
+                    } else {
+                        JOptionPane.showMessageDialog(null, "画像の読み込みに失敗しました。");
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "画像の読み込み中にエラーが発生しました。");
+                }
+            } else if (state == JFileChooser.CANCEL_OPTION) {
+                System.out.println("canceled");
+            } else if (state == JFileChooser.ERROR_OPTION) {
+                System.out.println("error");
+            }
+        });
 
+        saveItem.addActionListener(e -> {
+            int state = chooser.showSaveDialog(null);
+            if (state == JFileChooser.APPROVE_OPTION) {
+                File file = chooser.getSelectedFile();
+                try {
+                    // 拡張子がない場合は自動で .jpg を追加
+                    String filename = file.getPath();
+                    if (!filename.toLowerCase().endsWith(".jpg")) {
+                        filename += ".jpg";
+                        file = new File(filename);
+                    }
+                    BufferedImage img = draw_panel.exportImage(); // 画像生成
+                    ImageIO.write(img, "jpg", file); // 保存
+                    System.out.println("Saved as: " + file.getPath());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        exitItem.addActionListener(e -> System.exit(0));
+        KeyStroke ks = KeyStroke.getKeyStroke(KeyEvent.VK_X, Event.ALT_MASK);
+        exitItem.setAccelerator(ks);
+        // Menuが開いていなくても，ALT+X で exit が選択される．
+        fileMenu.setMnemonic('F'); // ALT+F で fileMenuが選択出来る．
+        exitItem.setMnemonic(KeyEvent.VK_X);
+    }
 
-class ViewPanel extends JPanel implements Observer {
-   protected DrawModel model;
-   JComboBox<String> comboBox_col;
-   JComboBox<String> comboBox_mode;
-   public ViewPanel(DrawModel m,DrawController c,ComboBoxController cb) {
-     comboBox_col = new JComboBox<>();
-     comboBox_mode = new JComboBox<>();
-     comboBox_mode.addActionListener(cb);
-     comboBox_col.addActionListener(cb);
-     comboBox_mode.addItem("draw");
-     comboBox_mode.addItem("choose");
-     comboBox_col.addItem("red");
-     comboBox_col.addItem("green");
-     comboBox_col.addItem("blue");
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            DrawFrame f = new DrawFrame();
+            f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            f.setVisible(true);
+        });
+    }
 
-     JButton upBtn = new JButton("↑");
-     JButton downBtn = new JButton("↓");
-     JButton leftBtn = new JButton("←");
-     JButton rightBtn = new JButton("→");
-     JButton zoomInBtn = new JButton("+");
-     JButton zoomOutBtn = new JButton("-");
-     upBtn.addActionListener(new ButtonController(m, 0, -10, "move"));
-     downBtn.addActionListener(new ButtonController(m, 0, 10,"move"));
-     leftBtn.addActionListener(new ButtonController(m, -10, 0,"move"));
-     rightBtn.addActionListener(new ButtonController(m, 10, 0,"move"));
-     zoomInBtn.addActionListener(new ButtonController(m, 10, 10, "resize"));
-     zoomOutBtn.addActionListener(new ButtonController(m, -10, -10, "resize"));
-     JPanel buttonPanel = new JPanel(new GridLayout(2, 3));
-     JPanel resizePanel = new JPanel();
-     resizePanel.add(zoomInBtn);
-     resizePanel.add(zoomOutBtn);
-     buttonPanel.add(new JLabel());  // 空白
-     buttonPanel.add(upBtn);
-     buttonPanel.add(new JLabel());  // 空白
-     buttonPanel.add(leftBtn);
-     buttonPanel.add(downBtn);
-     buttonPanel.add(rightBtn);
-     this.add(resizePanel, BorderLayout.NORTH);
-     this.add(buttonPanel, BorderLayout.SOUTH);
-     this.add(comboBox_col);
-     this.add(comboBox_mode);
-     this.setBackground(Color.white);
-     this.addMouseListener(c);
-     this.addMouseMotionListener(c);
-     model = m;
-     model.addObserver(this);
-   }
-   public void paintComponent(Graphics g) {
-     super.paintComponent(g);
-     ArrayList<Figure> fig = model.getFigures();
-     for(int i = 0; i < fig.size(); i++) {
-       Figure f = fig.get(i);
-       f.draw(g);
-     }
-   }
-   public void update(Observable o, Object arg) {
-     repaint();
-   }
- }
-
-
- public class DrawFrame extends JFrame {
-   DrawModel model;
-   ViewPanel view_panel;
-   DrawController cont;
-   ComboBoxController cb;
-
-
-   public DrawFrame() {
-       model = new DrawModel();
-       cb = new ComboBoxController(model);
-       cont = new DrawController(model);
-       view_panel = new ViewPanel(model, cont, cb);
-       this.setBackground(Color.black);
-       this.setTitle("Draw Editor");
-       this.setSize(500, 500);
-       this.add(view_panel);
-       this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-       this.setVisible(true);
-   }
-   public static void main(String[] args) {
-       new DrawFrame();
-   }
 }

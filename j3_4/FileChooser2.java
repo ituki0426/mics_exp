@@ -23,14 +23,13 @@ public class FileChooser2 extends JFrame {
 
     ActionListener al = new ActionListener() {
       public void actionPerformed(ActionEvent e) {
-	int state=0;
-	if (e.getSource()==openItem)
-	  state = chooser.showOpenDialog(null);
+        int state=0;
+        if (e.getSource()==openItem)
+          state = chooser.showOpenDialog(null);
         else if (e.getSource()==saveItem)
-	  state = chooser.showSaveDialog(null);
-	else
-	  System.exit(0);
-
+          state = chooser.showSaveDialog(null);
+        else
+          System.exit(0);
         File file = chooser.getSelectedFile();
         if(file != null && state == JFileChooser.APPROVE_OPTION)
           System.out.println("file name:"+file.getPath());
