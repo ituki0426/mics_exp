@@ -1,8 +1,10 @@
+
+import java.io.*;
 import java.awt.*;
 import java.util.*;
 import javax.swing.*;
 import java.awt.event.*;
-import java.io.File;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.*;
 import java.awt.*;
 import java.util.*;
@@ -11,15 +13,16 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
 class OperationPanel extends JPanel {
+
     public OperationPanel(DrawModel model, ComboBoxController cb) {
         this.setLayout(new BorderLayout());
 
         // コンボボックスパネル（上部）
         JPanel controlPanel = new JPanel();
         JComboBox<String> comboBox_shape = new JComboBox<>(
-                new String[] { "rectangle", "filled_rectangle", "circle", "filled_circle" });
-        JComboBox<String> comboBox_col = new JComboBox<>(new String[] { "red", "green", "blue" });
-        JComboBox<String> comboBox_mode = new JComboBox<>(new String[] { "draw", "choose" });
+                new String[]{"rectangle", "filled_rectangle", "circle", "filled_circle"});
+        JComboBox<String> comboBox_col = new JComboBox<>(new String[]{"red", "green", "blue"});
+        JComboBox<String> comboBox_mode = new JComboBox<>(new String[]{"draw", "choose"});
         comboBox_col.addActionListener(cb);
         comboBox_mode.addActionListener(cb);
         comboBox_shape.addActionListener(cb);
@@ -65,6 +68,7 @@ class OperationPanel extends JPanel {
 }
 
 class DrawPanel extends JPanel implements Observer {
+
     protected DrawModel model;
     protected DrawController controller;
     private BufferedImage backgroundImage = null;
@@ -110,6 +114,7 @@ class DrawPanel extends JPanel implements Observer {
 }
 
 class ComboBoxController implements ActionListener {
+
     private DrawModel model;
 
     public ComboBoxController(DrawModel a) {
@@ -127,12 +132,21 @@ class ComboBoxController implements ActionListener {
                 break;
             case "red":
                 model.setColor(Color.RED);
+                if (model.getMode().equals("choose")) {
+                    model.setColorToSelectedFigures(Color.RED); // 追加
+                }
                 break;
             case "green":
                 model.setColor(Color.GREEN);
+                if (model.getMode().equals("choose")) {
+                    model.setColorToSelectedFigures(Color.GREEN); // 追加
+                }
                 break;
             case "blue":
                 model.setColor(Color.BLUE);
+                if (model.getMode().equals("choose")) {
+                    model.setColorToSelectedFigures(Color.BLUE); // 追加
+                }
                 break;
             case "filled_rectangle":
             case "filled_circle":
@@ -142,9 +156,11 @@ class ComboBoxController implements ActionListener {
                 break;
         }
     }
+
 }
 
 class DrawController implements MouseListener, MouseMotionListener {
+
     protected DrawModel model;
     protected int dragStartX, dragStartY;
 
@@ -153,19 +169,39 @@ class DrawController implements MouseListener, MouseMotionListener {
     }
 
     public void mouseClicked(MouseEvent e) {
+        if (!model.getMode().equals("choose")) {
+            return;
+        }
+        int x = e.getX();
+        int y = e.getY();
+
+        boolean found = false;
+        for (Figure f : model.getFigures()) {
+            if (f.contains(x, y)) {
+                f.setSelected(!f.isSelected()); // トグル
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            model.clearSelection(); // 内部で notifyObservers 呼ばれる
+        } else {
+            model.notifyView();
+        }
     }
 
     public void mousePressed(MouseEvent e) {
         int x = e.getX();
         int y = e.getY();
+
         if (model.getMode().equals("draw")) {
             dragStartX = x;
             dragStartY = y;
             model.createFigure(x, y);
         } else if (model.getMode().equals("choose")) {
-            model.chooseFigure(x, y);
             dragStartX = x;
-            dragStartY = y; // ★追加することで、意図しない移動を防止
+            dragStartY = y;
+            // ここでは選択処理はしない（mouseClickedで行う）
         }
     }
 
@@ -196,9 +232,10 @@ class DrawController implements MouseListener, MouseMotionListener {
 }
 
 class ButtonController implements ActionListener {
+
     private DrawModel model;
     private int dx, dy;
-    private String type; // "move" or "resize"
+    private String type; // "move"または"resize"
 
     public ButtonController(DrawModel model, int dx, int dy, String type) {
         this.model = model;
@@ -218,6 +255,7 @@ class ButtonController implements ActionListener {
 }
 
 class DrawModel extends Observable {
+
     protected ArrayList<Figure> fig;
     protected Figure drawingFigure;
     protected Color currentColor;
@@ -229,6 +267,29 @@ class DrawModel extends Observable {
         drawingFigure = null;
         mode = "draw";
         currentColor = Color.red; // 色はとりあえず赤で固定
+    }
+
+    public void notifyView() {
+        setChanged();
+        notifyObservers();
+    }
+
+    public void setColorToSelectedFigures(Color c) {
+        for (Figure f : fig) {
+            if (f.isSelected()) {
+                f.setColor(c);
+            }
+        }
+        setChanged();
+        notifyObservers();
+    }
+
+    public void clearSelection() {
+        for (Figure f : fig) {
+            f.setSelected(false);
+        }
+        setChanged();
+        notifyObservers();
     }
 
     public void setShapeType(String type) {
@@ -320,7 +381,9 @@ class DrawModel extends Observable {
     }
 }
 
-class Figure {
+class Figure implements Serializable {
+
+    private static final long serialVersionUID = 1L;
     protected boolean filled;
     public int x, y, width, height;
     protected Color color;
@@ -349,8 +412,8 @@ class Figure {
     }
 
     public boolean contains(int px, int py) {
-        return (px >= x && px <= x + width &&
-                py >= y && py <= y + height);
+        return (px >= x && px <= x + width
+                && py >= y && py <= y + height);
     }
 
     public void setColor(Color color) {
@@ -386,6 +449,9 @@ class Figure {
 }
 
 class CircleFigure extends Figure {
+
+    private static final long serialVersionUID = 1L;
+
     public CircleFigure(int x, int y, int w, int h, Color c, boolean filled) {
         super(x, y, w, h, c, filled);
     }
@@ -414,8 +480,9 @@ class CircleFigure extends Figure {
         double cy = y + height / 2.0;
         double rx = width / 2.0;
         double ry = height / 2.0;
-        if (rx <= 0 || ry <= 0)
+        if (rx <= 0 || ry <= 0) {
             return false;
+        }
         double dx = px - cx;
         double dy = py - cy;
         return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1.0;
@@ -423,6 +490,9 @@ class CircleFigure extends Figure {
 }
 
 class RectangleFigure extends Figure {
+
+    private static final long serialVersionUID = 1L;
+
     public RectangleFigure(int x, int y, int w, int h, Color c, boolean filled) {
         super(x, y, w, h, c, filled);
     }
@@ -447,6 +517,7 @@ class RectangleFigure extends Figure {
 }
 
 public class DrawFrame extends JFrame {
+
     DrawPanel draw_panel;
     OperationPanel operation_panel;
     DrawModel model;
@@ -461,6 +532,11 @@ public class DrawFrame extends JFrame {
 
     public DrawFrame() {
         super("Simple File Chooser Application");
+        chooser.addChoosableFileFilter(new FileNameExtensionFilter("JPEG Image (*.jpg, *.jpeg)", "jpg", "jpeg"));
+        chooser.addChoosableFileFilter(new FileNameExtensionFilter("PNG Image (*.png)", "png"));
+        chooser.addChoosableFileFilter(new FileNameExtensionFilter("Bitmap Image (*.bmp)", "bmp"));
+        chooser.addChoosableFileFilter(new FileNameExtensionFilter("Serialized Data (*.ser)", "ser"));
+        chooser.setAcceptAllFileFilterUsed(false);
         model = new DrawModel();
         cb = new ComboBoxController(model);
         cont = new DrawController(model);
@@ -508,21 +584,79 @@ public class DrawFrame extends JFrame {
             int state = chooser.showSaveDialog(null);
             if (state == JFileChooser.APPROVE_OPTION) {
                 File file = chooser.getSelectedFile();
-                try {
-                    // 拡張子がない場合は自動で .jpg を追加
-                    String filename = file.getPath();
-                    if (!filename.toLowerCase().endsWith(".jpg")) {
-                        filename += ".jpg";
-                        file = new File(filename);
+                String filename = file.getName().toLowerCase();
+                String selectedExt = "png"; // デフォルト
+                javax.swing.filechooser.FileFilter selectedFilter = chooser.getFileFilter();
+
+                if (selectedFilter instanceof FileNameExtensionFilter) {
+                    String[] exts = ((FileNameExtensionFilter) selectedFilter).getExtensions();
+                    if (exts.length > 0) {
+                        selectedExt = exts[0].toLowerCase(); // ex: "ser", "jpg"
                     }
-                    BufferedImage img = draw_panel.exportImage(); // 画像生成
-                    ImageIO.write(img, "jpg", file); // 保存
-                    System.out.println("Saved as: " + file.getPath());
+                }
+
+                // ファイル名に拡張子が含まれていない場合、自動で追加
+                if (!filename.endsWith("." + selectedExt)) {
+                    file = new File(file.getAbsolutePath() + "." + selectedExt);
+                    filename = file.getName().toLowerCase(); // 更新
+                }
+
+                try {
+                    if (filename.endsWith(".png") || filename.endsWith(".jpg")
+                            || filename.endsWith(".jpeg") || filename.endsWith(".bmp")) {
+                        BufferedImage img = draw_panel.exportImage();
+                        String format = filename.substring(filename.lastIndexOf('.') + 1);
+                        ImageIO.write(img, format, file);
+                        System.out.println("画像を保存しました: " + file.getPath());
+                    } else if (filename.endsWith(".ser")) {
+                        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+                            oos.writeObject(model.getFigures());
+                            System.out.println("図形データを保存しました: " + file.getPath());
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(null, "未対応のファイル形式です（.png, .jpg, .ser など）");
+                    }
                 } catch (Exception ex) {
                     ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "保存中にエラーが発生しました。");
                 }
             }
         });
+
+        openItem.addActionListener(e -> {
+            int state = chooser.showOpenDialog(null);
+            if (state == JFileChooser.APPROVE_OPTION) {
+                File file = chooser.getSelectedFile();
+                String filename = file.getName().toLowerCase();
+
+                try {
+                    if (filename.endsWith(".png") || filename.endsWith(".jpg")
+                            || filename.endsWith(".jpeg") || filename.endsWith(".bmp")) {
+                        BufferedImage img = ImageIO.read(file);
+                        if (img != null) {
+                            draw_panel.setBackgroundImage(img);
+                            System.out.println("画像を読み込みました: " + file.getPath());
+                        } else {
+                            JOptionPane.showMessageDialog(null, "画像の読み込みに失敗しました。");
+                        }
+                    } else if (filename.endsWith(".ser")) {
+                        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                            ArrayList<Figure> loaded = (ArrayList<Figure>) ois.readObject();
+                            model.getFigures().clear();
+                            model.getFigures().addAll(loaded);
+                            model.notifyView();
+                            System.out.println("図形データを読み込みました: " + file.getPath());
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(null, "未対応のファイル形式です（.png, .jpg, .ser など）");
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "読み込み中にエラーが発生しました。");
+                }
+            }
+        });
+
         exitItem.addActionListener(e -> System.exit(0));
         KeyStroke ks = KeyStroke.getKeyStroke(KeyEvent.VK_X, Event.ALT_MASK);
         exitItem.setAccelerator(ks);
