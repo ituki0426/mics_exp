@@ -16,22 +16,23 @@ class OperationPanel extends JPanel {
 
     public OperationPanel(DrawModel model, ComboBoxController cb) {
         this.setLayout(new BorderLayout());
-
-        // コンボボックスパネル（上部）
-        JPanel controlPanel = new JPanel();
+        //CombBoxの描画（画面上部）
+        JPanel controlPanel = new JPanel(new GridLayout(3, 1, 5, 5)); // ← ここを修正（行:3, 列:1, 間隔:5px）
         JComboBox<String> comboBox_shape = new JComboBox<>(
-                new String[]{"rectangle", "filled_rectangle", "circle", "filled_circle"});
+                new String[]{"rectangle", "filled_rectangle", "circle", "filled_circle", "triangle", "filled_triangle", "line"});
         JComboBox<String> comboBox_col = new JComboBox<>(new String[]{"red", "green", "blue"});
         JComboBox<String> comboBox_mode = new JComboBox<>(new String[]{"draw", "choose"});
+
         comboBox_col.addActionListener(cb);
         comboBox_mode.addActionListener(cb);
         comboBox_shape.addActionListener(cb);
+
         controlPanel.add(comboBox_shape);
         controlPanel.add(comboBox_col);
         controlPanel.add(comboBox_mode);
 
         // 移動ボタンパネル（中央）
-        JPanel movePanel = new JPanel(new GridLayout(2, 3));
+        JPanel movePanel = new JPanel(new GridLayout(2, 3, 5, 5));
         JButton upBtn = new JButton("↑");
         JButton downBtn = new JButton("↓");
         JButton leftBtn = new JButton("←");
@@ -48,22 +49,23 @@ class OperationPanel extends JPanel {
         leftBtn.addActionListener(new ButtonController(model, -10, 0, "move"));
         rightBtn.addActionListener(new ButtonController(model, 10, 0, "move"));
 
-        // サイズ変更パネル（下部）
-        JPanel resizePanel = new JPanel();
+        JPanel actionPanel = new JPanel(new GridLayout(3, 1, 5, 5)); // 3行1列で縦に並べる
+        JButton deleteBtn = new JButton("Delete");
         JButton zoomInBtn = new JButton("+");
         JButton zoomOutBtn = new JButton("-");
+
+        deleteBtn.addActionListener(new ButtonController(model, 0, 0, "delete"));
         zoomInBtn.addActionListener(new ButtonController(model, 10, 10, "resize"));
         zoomOutBtn.addActionListener(new ButtonController(model, -10, -10, "resize"));
-        resizePanel.add(zoomInBtn);
-        resizePanel.add(zoomOutBtn);
+        actionPanel.add(deleteBtn);
+        actionPanel.add(zoomInBtn);
+        actionPanel.add(zoomOutBtn);
 
-        // パネルをまとめて配置
-        JPanel southPanel = new JPanel(new BorderLayout());
-        southPanel.add(movePanel, BorderLayout.CENTER);
-        southPanel.add(resizePanel, BorderLayout.SOUTH);
-
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.add(actionPanel, BorderLayout.NORTH);
+        centerPanel.add(movePanel, BorderLayout.SOUTH);
         this.add(controlPanel, BorderLayout.NORTH);
-        this.add(southPanel, BorderLayout.SOUTH);
+        this.add(centerPanel, BorderLayout.CENTER);
     }
 }
 
@@ -125,6 +127,7 @@ class ComboBoxController implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         JComboBox cb = (JComboBox) e.getSource();
         String selected = (String) cb.getSelectedItem();
+// ComboBoxController.java の actionPerformed 内
         switch (selected) {
             case "draw":
             case "choose":
@@ -133,28 +136,32 @@ class ComboBoxController implements ActionListener {
             case "red":
                 model.setColor(Color.RED);
                 if (model.getMode().equals("choose")) {
-                    model.setColorToSelectedFigures(Color.RED); // 追加
+                    model.setColorToSelectedFigures(Color.RED);
                 }
                 break;
             case "green":
                 model.setColor(Color.GREEN);
                 if (model.getMode().equals("choose")) {
-                    model.setColorToSelectedFigures(Color.GREEN); // 追加
+                    model.setColorToSelectedFigures(Color.GREEN);
                 }
                 break;
             case "blue":
                 model.setColor(Color.BLUE);
                 if (model.getMode().equals("choose")) {
-                    model.setColorToSelectedFigures(Color.BLUE); // 追加
+                    model.setColorToSelectedFigures(Color.BLUE);
                 }
                 break;
             case "filled_rectangle":
             case "filled_circle":
             case "rectangle":
             case "circle":
+            case "triangle":
+            case "filled_triangle":
+            case "line":
                 model.setShapeType(selected);
                 break;
         }
+
     }
 
 }
@@ -250,8 +257,11 @@ class ButtonController implements ActionListener {
             model.moveSelectedFigures(dx, dy);
         } else if (type.equals("resize")) {
             model.resizeSelectedFigures(dx, dy);
+        } else if (type.equals("delete")) {
+            model.deleteSelectedFigures();
         }
     }
+
 }
 
 class DrawModel extends Observable {
@@ -300,6 +310,12 @@ class DrawModel extends Observable {
         return this.shapeType;
     }
 
+    public void deleteSelectedFigures() {
+        fig.removeIf(Figure::isSelected);
+        setChanged();
+        notifyObservers();
+    }
+
     public void createFigure(int x, int y) {
         Figure f;
         switch (shapeType) {
@@ -311,6 +327,15 @@ class DrawModel extends Observable {
                 break;
             case "filled_rectangle":
                 f = new RectangleFigure(x, y, 0, 0, currentColor, true);
+                break;
+            case "triangle":
+                f = new TriangleFigure(x, y, 0, 0, currentColor, false);
+                break;
+            case "filled_triangle":
+                f = new TriangleFigure(x, y, 0, 0, currentColor, true);
+                break;
+            case "line":
+                f = new LineFigure(x, y, 0, 0, currentColor, false);
                 break;
             default:
                 f = new RectangleFigure(x, y, 0, 0, currentColor, false);
@@ -486,6 +511,90 @@ class CircleFigure extends Figure {
         double dx = px - cx;
         double dy = py - cy;
         return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1.0;
+    }
+}
+
+class TriangleFigure extends Figure {
+
+    private static final long serialVersionUID = 1L;
+
+    public TriangleFigure(int x, int y, int w, int h, Color c, boolean filled) {
+        super(x, y, w, h, c, filled);
+    }
+
+    @Override
+    public void draw(Graphics g) {
+        int[] xs = {x + width / 2, x, x + width};
+        int[] ys = {y, y + height, y + height};
+        g.setColor(color);
+        if (filled) {
+            g.fillPolygon(xs, ys, 3);
+        } else {
+            g.drawPolygon(xs, ys, 3);
+        }
+        if (selected) {
+            Graphics2D g2 = (Graphics2D) g;
+            Stroke oldStroke = g2.getStroke();
+            g2.setColor(Color.YELLOW);
+            g2.setStroke(new BasicStroke(4));
+            g2.drawPolygon(xs, ys, 3);
+            g2.setStroke(oldStroke);
+        }
+    }
+
+    @Override
+    public boolean contains(int px, int py) {
+        Polygon triangle = new Polygon(
+                new int[]{x + width / 2, x, x + width},
+                new int[]{y, y + height, y + height},
+                3
+        );
+        return triangle.contains(px, py);
+    }
+}
+
+class LineFigure extends Figure {
+
+    private static final long serialVersionUID = 1L;
+
+    public LineFigure(int x, int y, int w, int h, Color c, boolean filled) {
+        super(x, y, w, h, c, false); // filled は無視
+    }
+
+    @Override
+    public void draw(Graphics g) {
+        g.setColor(color);
+        g.drawLine(x, y, x + width, y + height);
+        if (selected) {
+            Graphics2D g2 = (Graphics2D) g;
+            Stroke oldStroke = g2.getStroke();
+            g2.setColor(Color.YELLOW);
+            g2.setStroke(new BasicStroke(4));
+            g2.drawLine(x, y, x + width, y + height);
+            g2.setStroke(oldStroke);
+        }
+    }
+
+    @Override
+    public boolean contains(int px, int py) {
+        double x1 = x, y1 = y;
+        double x2 = x + width, y2 = y + height;
+        double distance = ptLineDist(x1, y1, x2, y2, px, py);
+        return distance <= 5.0; // 選択判定：5ピクセル以内
+    }
+
+    private double ptLineDist(double x1, double y1, double x2, double y2, double px, double py) {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double lenSq = dx * dx + dy * dy;
+        if (lenSq == 0) {
+            return Math.hypot(px - x1, py - y1);
+        }
+        double t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+        t = Math.max(0, Math.min(1, t));
+        double projX = x1 + t * dx;
+        double projY = y1 + t * dy;
+        return Math.hypot(px - projX, py - projY);
     }
 }
 
