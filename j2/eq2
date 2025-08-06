@@ -1,0 +1,60 @@
+#! /c/Source/iverilog-install/bin/vvp
+:ivl_version "12.0 (devel)" "(s20150603-1110-g18392a46)";
+:ivl_delay_selection "TYPICAL";
+:vpi_time_precision + 0;
+:vpi_module "C:\iverilog\lib\ivl\system.vpi";
+:vpi_module "C:\iverilog\lib\ivl\vhdl_sys.vpi";
+:vpi_module "C:\iverilog\lib\ivl\vhdl_textio.vpi";
+:vpi_module "C:\iverilog\lib\ivl\v2005_math.vpi";
+:vpi_module "C:\iverilog\lib\ivl\va_math.vpi";
+S_000001cc4219af10 .scope module, "eqSim2" "eqSim2" 2 1;
+ .timescale 0 0;
+v000001cc4219bde0_0 .net "s", 0 0, L_000001cc420237d0;  1 drivers
+v000001cc4219be80_0 .var "x", 0 0;
+v000001cc4209c0b0_0 .var "y", 0 0;
+S_000001cc42055eb0 .scope module, "g" "eq2" 2 4, 3 1 0, S_000001cc4219af10;
+ .timescale 0 0;
+    .port_info 0 /OUTPUT 1 "s";
+    .port_info 1 /INPUT 1 "a";
+    .port_info 2 /INPUT 1 "b";
+L_000001cc42198730 .functor AND 1, v000001cc4219be80_0, v000001cc4209c0b0_0, C4<1>, C4<1>;
+L_000001cc42198da0 .functor NOT 1, L_000001cc42198730, C4<0>, C4<0>, C4<0>;
+L_000001cc42023510 .functor OR 1, v000001cc4219be80_0, v000001cc4209c0b0_0, C4<0>, C4<0>;
+L_000001cc42023670 .functor AND 1, L_000001cc42198da0, L_000001cc42023510, C4<1>, C4<1>;
+L_000001cc420237d0 .functor NOT 1, L_000001cc42023670, C4<0>, C4<0>, C4<0>;
+v000001cc4219aca0_0 .net *"_ivl_0", 0 0, L_000001cc42198730;  1 drivers
+v000001cc420230e0_0 .net *"_ivl_6", 0 0, L_000001cc42023670;  1 drivers
+v000001cc42198d00_0 .net "a", 0 0, v000001cc4219be80_0;  1 drivers
+v000001cc42198690_0 .net "b", 0 0, v000001cc4209c0b0_0;  1 drivers
+v000001cc4219b0a0_0 .net "s", 0 0, L_000001cc420237d0;  alias, 1 drivers
+v000001cc4219b140_0 .net "s1", 0 0, L_000001cc42198da0;  1 drivers
+v000001cc4219bd40_0 .net "s2", 0 0, L_000001cc42023510;  1 drivers
+    .scope S_000001cc4219af10;
+T_0 ;
+    %vpi_call 2 7 "$monitor", "%b %b", v000001cc4219b140_0, v000001cc4219bd40_0, $time {0 0 0};
+    %vpi_call 2 8 "$dumpfile", "eq2.vcd" {0 0 0};
+    %vpi_call 2 9 "$dumpvars", 32'sb00000000000000000000000000000000, S_000001cc4219af10 {0 0 0};
+    %vpi_call 2 10 "$display", "g.s1 g.s2           time" {0 0 0};
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v000001cc4219be80_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v000001cc4209c0b0_0, 0, 1;
+    %delay 50, 0;
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v000001cc4219be80_0, 0, 1;
+    %delay 50, 0;
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v000001cc4209c0b0_0, 0, 1;
+    %delay 50, 0;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v000001cc4219be80_0, 0, 1;
+    %delay 50, 0;
+    %vpi_call 2 15 "$finish" {0 0 0};
+    %end;
+    .thread T_0;
+# The file index is used to find the file name in the following table.
+:file_names 4;
+    "N/A";
+    "<interactive>";
+    "eq2Sim.v";
+    "eq2.v";

@@ -1,0 +1,81 @@
+$date
+	Mon Aug 04 01:21:23 2025
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1s
+$end
+$scope module dffnSim $end
+$var wire 1 ! o $end
+$var wire 1 " ck $end
+$var reg 1 # i $end
+$scope module clk1 $end
+$var reg 1 " ck $end
+$upscope $end
+$scope module dff1 $end
+$var wire 1 # D $end
+$var wire 1 " ck $end
+$var reg 1 ! Q $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+0#
+0"
+0!
+$end
+#50
+1"
+#100
+1!
+0"
+1#
+#150
+1"
+#200
+0"
+#250
+1"
+#300
+0!
+0"
+0#
+#350
+1"
+#400
+1!
+0"
+1#
+#450
+1"
+#500
+0"
+#550
+1"
+#600
+0!
+0"
+0#
+#650
+1"
+#700
+1!
+0"
+1#
+#750
+1"
+#800
+0"
+#850
+1"
+#900
+0!
+0"
+0#
+#950
+1"
+#1000
+0"
