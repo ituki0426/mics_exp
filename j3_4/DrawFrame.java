@@ -789,7 +789,7 @@ class RectangleFigure extends Figure {
     public void draw(Graphics g) {
         g.setColor(color);
         if (filled) {
-            // 塗りつぶしの場合、fillRectを使用
+            // つぶしの場合、fillRectを使用
             // x, y は左上の座標、width, height は幅と高さ
             g.fillRect(x, y, width, height);
             // 塗りつぶしでない場合、drawRectを使用

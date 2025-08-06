@@ -15,7 +15,6 @@ module work5Sim;
     reg ci;
     wire [3:0] s;
     wire cu;
-    integer n = 4; // Example width
 
     work5 add4(cu, s, x, y, ci);
 
