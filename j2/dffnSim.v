@@ -17,19 +17,16 @@ module dffnSim;
     reg i;
     wire o;
     clk clk1(ck);
-    dffn dff1(o, i, ck);
+    dffn dffn1(o, i, ck);
     initial
         begin
-            $monitor("%b %b %b", ck, i, o, $stime);
+            $monitor(" %b %b %b",ck,i,o,$stime);
             $display("ck i o time");
-
-            $dumpfile("dffn_re.vcd");
+            $dumpfile("dffn_3.vcd");
             $dumpvars(0, dffnSim);
-            i = 0;
-            #100 i = 1;
-            #200 i = 0;
-            #100 i = 1;
-            #200 i = 0;
-            #100 $finish;
+                i = 0;  
+           #100 i = 1;
+           #200 i = 0;
+           #100 $finish;
         end
 endmodule

@@ -1,0 +1,70 @@
+$date
+	Wed Aug 06 20:50:21 2025
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1s
+$end
+$scope module work6Sim $end
+$var wire 4 ! o [3:0] $end
+$var wire 1 " ck $end
+$var reg 4 # i [3:0] $end
+$var reg 1 $ load $end
+$scope module clk1 $end
+$var reg 1 " ck $end
+$upscope $end
+$scope module reg1 $end
+$var wire 4 % D [3:0] $end
+$var wire 1 " ck $end
+$var wire 1 $ load $end
+$var wire 4 & tmp [3:0] $end
+$var wire 4 ' Q [3:0] $end
+$scope module dffn1 $end
+$var wire 4 ( D [3:0] $end
+$var wire 1 " ck $end
+$var reg 4 ) Q [3:0] $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+b0 )
+b0 (
+b0 '
+b0 &
+b0 %
+0$
+b0 #
+0"
+b0 !
+$end
+#50
+1"
+#100
+b1 !
+b1 '
+b1 )
+b1 &
+b1 (
+0"
+1$
+b1 #
+b1 %
+#150
+1"
+#200
+0"
+#250
+1"
+#300
+0"
+0$
+b10 #
+b10 %
+#350
+1"
+#400
+0"
