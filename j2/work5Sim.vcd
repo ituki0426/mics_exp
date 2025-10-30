@@ -1,0 +1,74 @@
+$date
+	Mon Aug 11 20:57:11 2025
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1s
+$end
+$scope module work5Sim $end
+$var wire 4 ! s [3:0] $end
+$var wire 1 " cu $end
+$var reg 1 # ci $end
+$var reg 4 $ x [3:0] $end
+$var reg 4 % y [3:0] $end
+$scope module add4 $end
+$var wire 1 # ci $end
+$var wire 4 & s [3:0] $end
+$var wire 4 ' x [3:0] $end
+$var wire 4 ( y [3:0] $end
+$var wire 1 " cu $end
+$var wire 4 ) c [3:0] $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+b0 )
+b0 (
+b0 '
+b0 &
+b0 %
+b0 $
+0#
+0"
+b0 !
+$end
+#10
+b10 !
+b10 &
+b10 )
+b1 %
+b1 (
+b1 $
+b1 '
+#20
+b110 !
+b110 &
+b111 )
+1#
+b11 %
+b11 (
+b10 $
+b10 '
+#30
+b1001 !
+b1001 &
+b1000 )
+0#
+b101 %
+b101 (
+b100 $
+b100 '
+#40
+b1111 !
+b1111 &
+1"
+b1111 )
+1#
+b1111 %
+b1111 (
+b1111 $
+b1111 '
+#50

@@ -1,48 +1,22 @@
-module clk(ck);
-    output ck;
-    reg ck;
-    initial ck = 0;
-    always #50 ck = ~ck; // Toggle clock every 50 time units
-endmodule
-
-module dff_nbit(q,d,ck);
-    parameter n = 4;
-    input [n-1:0] d;
-    input ck;
-    output [n-1:0] q;
-    reg [n-1:0] q;
-    initial q = 0;
-    always @(negedge ck) q = d;
-endmodule
-
-module r(q,d,ck,load);
-    parameter n = 4;
-    input [n-1:0] d;
-    input ck, load;
-    output [n-1:0] q;
-    wire [n-1:0] tmp;
-    dff_nbit dffn1(q, tmp, ck);
-    assign tmp = load ? d : q; // Load new value if load is high, else retain current value
-endmodule
-
 module rSim;
-    reg load;
-    initial load = 0; // Initialize load to 0
-    reg [3:0] i;
-    wire [3:0] o;
-    clk clk1(ck);
-    r reg1(o, i, ck, load);
-    initial
-        begin
-            $monitor(" %b %b %b %b", ck, i, load, o, $stime);
-            $display("ck i load o time");
-            $dumpfile("rSim.vcd");
-            $dumpvars(0, rSim);
-            i = 4'b0000;  
-            #100 i = 4'b0001; load = 1;
-            #200 i = 4'b0010; load = 0;
-            #100 i = 4'b0011; load = 1;
-            #200 i = 4'b0100; load = 0;
-            #100 $finish;
-        end
+parameter n = 4; // ビット幅のパラメータ
+reg load; // ロード信号を制御するレジスタ
+initial load = 0; // 初期値を０に設定
+reg [n-1:0] d; // 入力データを４ビットのレジスタとして定義
+wire [n-1:0] q; // 出力データを４ビットのワイヤとして定義
+clk clk1(ck); // クロック信号を生成するモジュールをインスタンス化
+r reg1(q, d, ck, load); // レジスタモジュールをインスタンス化
+initial
+begin
+$monitor(" %b %b %b %b", ck, d, load, q, $stime); // モニタリングの設定
+$display("ck d load q time"); // ヘッダーの表示
+$dumpfile("rSim.vcd"); // ファイルの出力設定 VCD
+$dumpvars(0, rSim); // 変数のダンプ設定
+d = 4'b0000; // 初期入力データを設定
+#50 d = 4'b0001; load = 1; // 入力データを変更し、ロード信号を１に設定
+#100 d = 4'b0010; load = 0; // 入力データを変更し、ロード信号を０に設定
+#50 d = 4'b0011; load = 1; // 入力データを変更し、ロード信号を１に設定
+#100 d = 4'b0100; load = 0; // 入力データを変更し、ロード信号を０に設定
+#50 $finish;
+end
 endmodule
